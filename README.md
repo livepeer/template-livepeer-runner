@@ -83,7 +83,7 @@ An operator then runs your app from that image, so give them the tag and the app
 
 If an operator's pull 404s, the package is private — check its visibility under the repo's Packages settings.
 
-To publish elsewhere, set the repository variables `IMAGE_NAME` and `REGISTRY_USERNAME` plus the secret `REGISTRY_TOKEN`.
+To publish to Docker Hub as well, set the repository variable `DOCKERHUB_NAMESPACE` and the secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`. GHCR keeps working either way.
 
 ## Development
 
