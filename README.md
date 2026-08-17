@@ -79,10 +79,9 @@ Once your app is published, open a PR there adding one row to its [External exam
 
 CI builds the image on every push and publishes it to `ghcr.io/<owner>/<repo>` on `main` and `v*` tags, with no setup: the built-in token is enough. Pull requests build without publishing.
 
-An operator then runs your app from that image, so give them the tag and the app id.
+An operator then runs your app from that image, so give them the tag and the app id. No credentials are involved either way: publishing uses the built-in token, and pulling a package from a public repo needs no login.
 
-> [!IMPORTANT]
-> A new GHCR package is **private**. Make it public under the repo's Packages settings, or the operator's pull will 404.
+If an operator's pull 404s, the package is private — check its visibility under the repo's Packages settings.
 
 To publish elsewhere, set the repository variables `IMAGE_NAME` and `REGISTRY_USERNAME` plus the secret `REGISTRY_TOKEN`.
 
