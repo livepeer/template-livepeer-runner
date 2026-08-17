@@ -1,0 +1,8 @@
+[project]
+name = "your-app-livepeer-runner"
+version = "0.1.0"
+description = "An app that runs on the Livepeer network."
+requires-python = ">=3.12"
+dependencies = [
+    "livepeer-gateway>=1.0.0",
+]

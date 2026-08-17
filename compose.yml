@@ -1,0 +1,52 @@
+# End-to-end offchain demo: orchestrator + your app. Free, no wallet.
+#
+#   docker compose up -d --build
+#   uv run client.py --input hello
+#
+# Self-contained on purpose: unlike the examples repo, nothing here is pulled in
+# from a parent directory, so this works wherever you copy it.
+
+services:
+  orchestrator:
+    image: livepeer/go-livepeer:v0.9.1
+    container_name: livepeer_runner_orchestrator
+    # Two distinct addresses:
+    #   serviceAddr    advertised to external clients in discovery responses,
+    #                  so it must be reachable from the host (published port).
+    #   liveRunnerAddr control-plane URL runners use for heartbeat + trickle,
+    #                  so it must resolve on the compose network.
+    # The image entrypoint is `livepeer`, so `command:` is flags only.
+    command:
+      - -orchestrator
+      - -useLiveRunners
+      - -serviceAddr=127.0.0.1:8935
+      - -httpAddr=0.0.0.0:8935
+      - -liveRunnerAddr=https://orchestrator:8935
+      - -orchSecret=abcdef
+      - -network=offchain
+      - -monitor=false
+      - -v=6
+    ports:
+      - "8935:8935"
+    # 8935 is HTTPS and the image has only openssl, no curl or wget. A raw TCP
+    # probe would open the socket without a handshake and log a TLS error every
+    # interval, so speak real TLS; matching "200 OK" also proves it is serving.
+    healthcheck:
+      test: printf 'GET /healthz HTTP/1.0\r\n\r\n' | openssl s_client -connect 127.0.0.1:8935 -quiet 2>/dev/null | grep -q '200 OK'
+      interval: 3s
+      timeout: 3s
+      retries: 40
+      start_period: 5s
+
+  app:
+    build: .
+    container_name: livepeer_runner_app
+    # Wait for the orchestrator's healthcheck so registration doesn't race its boot.
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+    command:
+      - --host=0.0.0.0
+      - --orchestrator=https://orchestrator:8935
+      - --orchSecret=abcdef
+      - --runner-url=http://app:8989
