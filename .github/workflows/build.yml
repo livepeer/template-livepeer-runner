@@ -1,18 +1,11 @@
 name: build
 
-# Builds the app image so an orchestrator operator can pull and run it.
+# Builds the app image so an orchestrator can pull and run it. Pull requests
+# build without publishing; amd64 only, since Livepeer GPU work is NVIDIA/amd64.
 #
-# Publishes to GitHub Container Registry with no setup: the built-in token is
-# enough, and a package published by Actions inherits the repo's visibility, so
-# a public repo gives a publicly pullable image at ghcr.io/<owner>/<repo>.
-#
-# Docker Hub is optional and additive. Set the repository variable
-# DOCKERHUB_NAMESPACE plus the secrets DOCKERHUB_USERNAME and DOCKERHUB_TOKEN,
-# and the same image is pushed to <namespace>/<repo> as well.
-#
-# Pull requests build only, so a fork's PR can never publish.
-#
-# amd64 only: Livepeer GPU work is NVIDIA/amd64, and there is no CUDA on arm64.
+# GHCR needs no setup (ghcr.io/<owner>/<repo>, public if the repo is). Docker Hub
+# is optional and additive: set the DOCKERHUB_NAMESPACE variable plus the
+# DOCKERHUB_USERNAME and DOCKERHUB_TOKEN secrets.
 
 on:
   push:
