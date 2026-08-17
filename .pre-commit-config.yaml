@@ -1,5 +1,4 @@
-# Formatting hooks for local (`pre-commit install`) and CI (.github/workflows/ci.yml).
-# Matches the livepeer/runner-app-examples config so contributions stay compatible.
+# Formatting hooks for local (`pre-commit install`) and CI (.github/workflows/lint.yml).
 # Bump pins with `pre-commit autoupdate`.
 repos:
   - repo: https://github.com/psf/black-pre-commit-mirror
