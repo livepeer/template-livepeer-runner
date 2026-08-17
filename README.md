@@ -75,6 +75,17 @@ This template is deliberately minimal. [**livepeer/runner-app-examples**](https:
 
 Once your app is published, open a PR there adding one row to its [External examples](https://github.com/livepeer/runner-app-examples#external-examples) table so people can find it.
 
+## Ship it to an orchestrator
+
+CI builds the image on every push and publishes it to `ghcr.io/<owner>/<repo>` on `main` and `v*` tags, with no setup: the built-in token is enough. Pull requests build without publishing.
+
+An operator then runs your app from that image, so give them the tag and the app id.
+
+> [!IMPORTANT]
+> A new GHCR package is **private**. Make it public under the repo's Packages settings, or the operator's pull will 404.
+
+To publish elsewhere, set the repository variables `IMAGE_NAME` and `REGISTRY_USERNAME` plus the secret `REGISTRY_TOKEN`.
+
 ## Development
 
 ```sh
@@ -82,4 +93,4 @@ uvx pre-commit install      # format on commit
 uvx pre-commit run --all-files
 ```
 
-CI runs the same hooks and validates both compose files.
+CI runs the same hooks, checks the compose file parses, and builds the image.
