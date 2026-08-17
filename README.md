@@ -1,8 +1,13 @@
 # your-app-livepeer-runner
 
-An app that runs on the **Livepeer network**. It is an ordinary aiohttp service; an orchestrator hosts it and clients call it through that orchestrator, paying per call. Your app stays a plain HTTP service, so you are never tied to us.
+An app that runs on the **Livepeer network**. You write an ordinary HTTP service; an orchestrator hosts it and acts as a **transparent reverse proxy**, so callers reach your endpoints unchanged while it handles discovery, sessions, and payment. Nothing about your app is Livepeer-specific beyond announcing itself at startup, so you are never tied to us.
 
-Start it with `docker compose up -d --build` and call it with `uv run client.py`.
+This template is that, end to end and already working: a small aiohttp service, a client that calls it through an orchestrator, and compose files that run both locally.
+
+```sh
+docker compose up -d --build
+uv run client.py --input hello
+```
 
 ## Start here
 
@@ -25,11 +30,9 @@ Done once, then delete this section:
 
 ## How it's wired
 
-The app calls `register_runner` on startup and heartbeats until it exits; the orchestrator reverse-proxies callers to it and drops it when the heartbeats stop. The client discovers it with `runner_selector` and calls it with `call_runner`. Grep `# Livepeer:` in [runner.py](runner.py) and [client.py](client.py) to see all four calls; they are the only Livepeer-specific lines in the app.
+`/run` in [runner.py](runner.py) is an ordinary aiohttp handler. Around it, the app calls `register_runner` on startup and heartbeats until it exits, and the orchestrator drops it when the heartbeats stop. The client finds it with `runner_selector` and calls it with `call_runner`.
 
-The orchestrator is a **transparent reverse proxy**, so every endpoint you expose is passed through unchanged. Add routes freely.
-
-**Single-shot** means the orchestrator reserves a session for one request and releases it when the response returns, so the client manages no session. **Fixed** pricing bills one flat price per call. If your work is long-running or streaming, see the examples repo for the persistent and metered alternatives.
+Grep `# Livepeer:` in [runner.py](runner.py) and [client.py](client.py) to see all four calls. They are the only Livepeer-specific lines in the whole template.
 
 ## Run offchain (free)
 
@@ -61,20 +64,6 @@ docker compose -f compose.yml -f compose.onchain.yml down
 > [!WARNING]
 > The signer runs with `-remoteSignerAllowNoAuth`, which signs for anyone who can reach it and spends your deposit. That is fine on a laptop and wrong anywhere else: authorize callers with `-remoteSignerWebhookUrl` before exposing it.
 
-## Static registration instead
-
-Dynamic registration suits apps that come and go. If yours is a fixed deployment, the orchestrator can instead be pointed at it: the operator adds your entry to a `runners.json` (see [runners.json.example](runners.json.example)) and health-polls you, and the app needs **no SDK and no Livepeer code at all**.
-
-That also makes any language a first-class option: a Go, Rust, or Node service can be a runner as-is. One of the examples is nothing but an nginx config.
-
-The trade is who configures it. Dynamic needs the orchestrator's `orchSecret`; static needs the operator to edit their config. Dynamic is the default here because it runs end to end on your own machine with neither.
-
-## More examples
-
-This template is deliberately minimal. [**livepeer/runner-app-examples**](https://github.com/livepeer/runner-app-examples) has the full set, one per idea: WebSocket and trickle transports for realtime, persistent sessions, metered per-second pricing, static registration, capacity fan-out, and proxying a hosted API.
-
-Once your app is published, open a PR there adding one row to its [External examples](https://github.com/livepeer/runner-app-examples#external-examples) table so people can find it.
-
 ## Ship it to an orchestrator
 
 CI builds the image on every push and publishes it to `ghcr.io/<owner>/<repo>` on `main` and `v*` tags, with no setup: the built-in token is enough. Pull requests build without publishing.
@@ -93,3 +82,14 @@ uvx pre-commit run --all-files
 ```
 
 CI runs the same hooks, checks the compose file parses, and builds the image.
+
+## Beyond this template
+
+This template picks the simplest option on every axis. The live runner supports more, and swapping any of these is a change to your registration, not a rewrite. The [live runner docs](https://github.com/livepeer/go-livepeer/blob/master/doc/live-runner.md) are the reference.
+
+- **Transports.** Plain HTTP here. Also **SSE** for streamed responses, **WebSocket** for long-lived sessions, and **trickle**, Livepeer's realtime media protocol, built to traverse firewalls. The orchestrator passes all of them through unchanged.
+- **Modes.** `single-shot` here: one session per request, released when the response returns, so the client manages nothing. `persistent` instead lets a client reserve a session, use it as long as it needs, then release it — what realtime and stateful apps want.
+- **Pricing.** `fixed` here, one flat payment per call. Also `hour`, quoted in USD per hour but metered per second while the session runs, and `720p` for video work.
+- **Static registration.** Instead of self-registering, an operator can point a `runners.json` at your app (see [runners.json.example](runners.json.example)) and health-poll it. Then you need **no SDK and no Livepeer code at all**, so any language works: [`api-proxy`](https://github.com/livepeer/runner-app-examples/tree/main/api-proxy) is nothing but an nginx config, and [`vllm`](https://github.com/livepeer/runner-app-examples/tree/main/vllm) attaches the stock `vllm/vllm-openai` image untouched. The trade is who configures it: dynamic needs the orchestrator's `orchSecret`, static needs the operator to edit their config.
+
+[**livepeer/runner-app-examples**](https://github.com/livepeer/runner-app-examples) has a working example of each. Once your app is published, open a PR there adding one row to its [External examples](https://github.com/livepeer/runner-app-examples#external-examples) table so people can find it.
